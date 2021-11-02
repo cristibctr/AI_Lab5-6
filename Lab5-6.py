@@ -1,11 +1,12 @@
 import random
 
+
 class State:
-    def __init__(self, balls = []):
+    def __init__(self, balls=[]):
         self.balls = balls
         self.availableTries = None
 
-    def addTries(self, availableTries):
+    def setTries(self, availableTries):
         self.availableTries = availableTries
 
     def __hash__(self):
@@ -15,79 +16,109 @@ class State:
         return (self.balls == other.balls)
 
     def __str__(self) -> str:
-        return f'Balls: {self.balls} | Available tries: {self.availableTries}\n'
+        return f'Balls: {self.balls} | Available tries: {self.availableTries}'
+
 
 class Game:
+    FAILED_TO_GUESS = -1
+    SUCCEEDED_TO_GUESS = -2
+    GAME_ALREADY_ENDED = -3
+
     def __init__(self, n, m, k):
         self.allStates = []
-        self.n = n
-        self.m = m
-        self.k = k
+        self.numberOfColors = n
+        self.numberOfSameColoredBalls = m
+        self.numberOfBallsInState = k
         self.finalState = self.chooseRandomState()
         self.ended = False
 
     def chooseRandomState(self):
         chosenColors = []
-        while len(chosenColors) < self.k:
-           randColor = random.randrange(self.n)
-           if self.m > chosenColors.count(randColor):
-               chosenColors.append(randColor)
+
+        while len(chosenColors) < self.numberOfBallsInState:
+            randColor = random.randrange(self.numberOfColors)
+
+            if self.numberOfSameColoredBalls > chosenColors.count(randColor):
+                chosenColors.append(randColor)
+
         return State(chosenColors)
 
     def isFinal(self, state: State):
         if state.availableTries <= 0:
-            return -1
+            return Game.FAILED_TO_GUESS
         if self.finalState == state:
-            return 1
+            return Game.SUCCEEDED_TO_GUESS
         return 0
 
     def addState(self, state: State):
-        if len(state.balls) <= self.k:
+        if len(state.balls) <= self.numberOfBallsInState:
             self.allStates.append(state)
 
     def countCorrectGuesses(self, state: State):
         correctBallsNr = 0
-        for ballNr in range(self.k):
+        for ballNr in range(self.numberOfBallsInState):
             if self.finalState.balls[ballNr] == state.balls[ballNr]:
                 correctBallsNr += 1
         return correctBallsNr
 
     def makeGuess(self, state: State):
         if self.ended:
-            print("Game ended. You can't continue playing!")
-            return -1
-        if len(self.allStates) == 0:
-            state.addTries(self.n*2 - 1)
-        else:
-            state.addTries(self.allStates[-1].availableTries - 1)
+            return Game.GAME_ALREADY_ENDED
+
+        state.setTries(self.getAvailableTries())
+
         self.addState(state)
-        if self.isFinal(state) == 1:
-            print(f'You win!\n')
+
+        final = self.isFinal(state)
+
+        if final == Game.FAILED_TO_GUESS or final == Game.SUCCEEDED_TO_GUESS:
             self.ended = True
-            return 1
-        if self.isFinal(state) == -1:
-            print('You lost the game :(\n')
-            self.ended = True
-            return -1
-        if self.isFinal(state) == 0:
-            print(f'You guessed {self.countCorrectGuesses(state)} out of {self.k}\n')
-            print(f'You have {self.allStates[-1].availableTries} tries left\n')
-            return 0
-            
-        
+            return final
+
+        return self.countCorrectGuesses(state)
+
+    def getAvailableTries(self):
+        if len(self.allStates) == 0:
+            return self.numberOfColors * 2 - 1
+        else:
+            return self.allStates[-1].availableTries - 1
 
     def __str__(self) -> str:
-        finalStr = f'Final state: {self.finalState}\n'
-        for state in self.allStates:
-            finalStr += state.__str__()
-        return finalStr
+        return f'Number of colors: {self.numberOfColors}\n' \
+               f'There are {self.numberOfSameColoredBalls} balls for each color\n' \
+               f'{self.numberOfBallsInState} balls were chosen'
+
 
 if __name__ == '__main__':
     newGame = Game(8, 4, 4)
+
+    print(f"DELETE THIS: final state is: {newGame.finalState}")
+
     print(newGame)
+
+    print("Try guessing the chosen balls by entering the colors as numbers with spaces in between\n")
     while True:
-        arr = input("Input your colors as numbers\n")
-        colors = list(map(int,arr.split(' ')))
+        arr = input("Input your colors as numbers:\n")
+
+        try:
+            colors = list(map(int, arr.split(' ')))
+        except Exception as e:
+            print(f"Invalid input. Error: {e}\n")
+            continue
+
         guessResult = newGame.makeGuess(State(colors))
-        if guessResult == 1 or guessResult == -1:
+
+        if guessResult == Game.SUCCEEDED_TO_GUESS:
+            print("You did it!\n")
+            print(f"You guessed {newGame.finalState}\n")
             break
+
+        if guessResult == Game.FAILED_TO_GUESS:
+            print("You failed to guess the colors!\n")
+            print(f"The should have guessed {newGame.finalState}\n")
+            break
+
+        print(f"You have guessed {guessResult} balls out of {newGame.numberOfBallsInState}\n")
+        print(f"You have {newGame.getAvailableTries() + 1} tries left\n")
+
+    print("Game ended!\n")
