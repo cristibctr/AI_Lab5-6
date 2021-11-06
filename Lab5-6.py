@@ -1,5 +1,6 @@
 import random
-
+import math
+from itertools import product
 
 class State:
     def __init__(self, balls=[]):
@@ -89,8 +90,30 @@ class Game:
                f'{self.numberOfBallsInState} balls were chosen'
 
 
+#returns number of possible outcomes when you guessed x correct balls starting from current state
+def numberOfPossibilities(game, state, correctGuesses):
+    #took me more than an hour to define this formula using many examples ---- not sure if it's correct
+    return (pow(game.numberOfColors, len(state.balls) - correctGuesses) - (len(state.balls) - correctGuesses)) *  math.comb(len(state.balls), correctGuesses) - 1
+
+#generates the number of possible outcomes for every possible number of correct guesses
+def generateAllGuesses(game, state):
+    genNr = []
+    for correctGuesses in range(0, len(state.balls)):
+        genNr.append(numberOfPossibilities(game, state, correctGuesses))
+    return genNr
+
+def generateAllStates(game):
+    possibleStates = list(product([i for i in range(1, game.numberOfColors + 1)], repeat=game.numberOfBallsInState))
+    for state in possibleStates:
+        print(generateAllGuesses(game, State(state)))
+
+
 if __name__ == '__main__':
-    newGame = Game(8, 4, 4)
+    newGame = Game(5, 4, 4)
+
+
+    generateAllStates(newGame)
+    exit()
 
     print(f"DELETE THIS: final state is: {newGame.finalState}")
 
