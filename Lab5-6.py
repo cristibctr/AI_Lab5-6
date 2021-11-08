@@ -19,6 +19,18 @@ class State:
     def __str__(self) -> str:
         return f'Balls: {self.balls} | Available tries: {self.availableTries}'
 
+    def clone(self):
+        return State(list(self.balls))
+
+
+class QAndA:
+    state: State
+    answer: int
+
+    def __init__(self, state, answer):
+        self.state = state
+        self.answer = answer
+
 
 class Game:
     FAILED_TO_GUESS = -1
@@ -30,6 +42,7 @@ class Game:
         self.numberOfColors = n
         self.numberOfSameColoredBalls = m
         self.numberOfBallsInState = k
+        self.possibleStates = self.getAllPossibleStates()
         self.finalState = self.chooseRandomState()
         self.ended = False
 
@@ -44,16 +57,16 @@ class Game:
 
         return State(chosenColors)
 
-    def isFinal(self, state: State):
-        if state.availableTries <= 0:
+    def isFinal(self, qa: QAndA):
+        if qa.state.availableTries <= 0:
             return Game.FAILED_TO_GUESS
-        if self.finalState == state:
+        if self.numberOfBallsInState == qa.answer:
             return Game.SUCCEEDED_TO_GUESS
         return 0
 
-    def addState(self, state: State):
-        if len(state.balls) <= self.numberOfBallsInState:
-            self.allStates.append(state)
+    def addState(self, qa: QAndA):
+        if len(qa.state.balls) <= self.numberOfBallsInState:
+            self.allStates.append(qa)
 
     def countCorrectGuesses(self, state: State):
         correctBallsNr = 0
@@ -68,26 +81,58 @@ class Game:
 
         state.setTries(self.getAvailableTries())
 
-        self.addState(state)
+        qa = QAndA(state, self.countCorrectGuesses(state))
 
-        final = self.isFinal(state)
+        self.addState(qa)
+
+        final = self.isFinal(qa)
 
         if final == Game.FAILED_TO_GUESS or final == Game.SUCCEEDED_TO_GUESS:
             self.ended = True
             return final
 
-        return self.countCorrectGuesses(state)
+        return qa.answer
 
     def getAvailableTries(self):
         if len(self.allStates) == 0:
             return self.numberOfColors * 2 - 1
         else:
-            return self.allStates[-1].availableTries - 1
+            return self.allStates[-1].state.availableTries - 1
 
     def __str__(self) -> str:
         return f'Number of colors: {self.numberOfColors}\n' \
                f'There are {self.numberOfSameColoredBalls} balls for each color\n' \
                f'{self.numberOfBallsInState} balls were chosen'
+
+    def okState(self, state: State) -> bool:
+        for color in range(0, self.numberOfColors):
+            if self.numberOfSameColoredBalls > state.balls.count(color):
+                return False
+
+        return True
+
+    def backTrackStates(self, state, index) -> list[State]:
+        if index == self.numberOfBallsInState:
+            return [state]
+
+        result = []
+
+        for color in range(0, self.numberOfColors):
+            newState: State = state.clone()
+            newState.balls[index] = color
+            if self.okState(state):
+                result.append(self.backTrackStates(newState, index + 1))
+
+        return result
+
+    def getAllPossibleStates(self) -> list[State]:
+        initialState = State([-1 for i in range(0, self.numberOfBallsInState)])
+
+        return self.backTrackStates(initialState, 0)
+
+
+# def possibleNextStates(game: Game):
+
 
 
 #returns number of possible outcomes when you guessed x correct balls starting from current state
@@ -111,9 +156,8 @@ def generateAllStates(game):
 if __name__ == '__main__':
     newGame = Game(5, 4, 4)
 
-
-    generateAllStates(newGame)
-    exit()
+    # generateAllStates(newGame)
+    # exit()
 
     print(f"DELETE THIS: final state is: {newGame.finalState}")
 
