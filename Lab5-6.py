@@ -206,11 +206,14 @@ def bestStates(possibleStates: list[State]):
 
     return result
 
-if __name__ == '__main__':
-    newGame = Game(4, 4, 4)
 
-    # generateAllStates(newGame)
-    # exit()
+# MARK - fk+1(q1, a1, ...)
+
+def getNextQuestion(possibleStates: list[State]):
+    return bestStates(possibleStates)[0]
+
+
+def manual(newGame: Game):
 
     print(f"DELETE THIS: final state is: {newGame.finalState}")
 
@@ -243,7 +246,50 @@ if __name__ == '__main__':
 
         # print(permutations())
 
+
+def minimax(newGame: Game):
+
+    print(f"DELETE THIS: final state is: {newGame.finalState}")
+
+    print(newGame)
+
+    print("Try guessing the chosen balls by entering the colors as numbers with spaces in between\n")
+    while True:
+        remainingStates = possibleNextStates(newGame.possibleStates, newGame.allStates)
+
+        bestQuestion = getNextQuestion(remainingStates)
+
+        print(bestQuestion)
+
+        guessResult = newGame.makeGuess(bestQuestion)
+
+        if guessResult == Game.SUCCEEDED_TO_GUESS:
+            print("You did it!\n")
+            print(f"You guessed {newGame.finalState}\n")
+            break
+
+        if guessResult == Game.FAILED_TO_GUESS:
+            print("You failed to guess the colors!\n")
+            print(f"The should have guessed {newGame.finalState}\n")
+            break
+
+        print(f"You have guessed {guessResult} balls out of {newGame.numberOfBallsInState}\n")
+        print(f"You have {newGame.getAvailableTries() + 1} tries left\n")
+
+
+if __name__ == '__main__':
+    newGame = Game(5, 5, 5)
+
+    doItManual = False
+
+    if doItManual:
+        manual(newGame)
+    else:
+        minimax(newGame)
+
     print("Game ended!\n")
+
+
 
 
 
