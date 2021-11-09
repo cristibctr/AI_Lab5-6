@@ -162,46 +162,66 @@ def possibleNextStates(allPossibleStates: [State], allQAndA: [QAndA]):
     return possibleStates
 
 
-# MARK -- P(q, C)
+# MARK -- es(q, C)
 
-def permutations(forQuestion: State, possibleStates: list[State]):
-    result = []
+def estimate(forQuestion: State, possibleStates: list[State], previousMinimum: int):
+    minim = previousMinimum
 
-    for answer in range(0, len(forQuestion.balls) + 1):
+    for answer in reversed(range(0, len(forQuestion.balls) + 1)):
         resultingStates = possibleNextStates(possibleStates, [QAndA(forQuestion, answer)])
 
-        if len(resultingStates):
-            result.append(resultingStates)
+        count = len(resultingStates)
 
-    return result
+        if count:
+            if count < previousMinimum:
+                return count
+
+            if count < minim:
+                minim = count
+
+    return minim
 
 
 # MARK - le(q, C) = es(q, C) when est(C) = len(C)
-
-def estimate(forQuestion: State, possibleStates: list[State]):
-    maxim = 0
-
-    for dqa in permutations(forQuestion, possibleStates):
-        if len(dqa) > maxim:
-            maxim = len(dqa)
-
-    return 1 + maxim
+#
+# FOR MINIMAX WITHOUT APLHA-BETA PRUNNING
+#
+# def permutations(forQuestion: State, possibleStates: list[State]):
+#     result = []
+#
+#     for answer in range(0, len(forQuestion.balls) + 1):
+#         resultingStates = possibleNextStates(possibleStates, [QAndA(forQuestion, answer)])
+#
+#         if len(resultingStates):
+#             result.append(resultingStates)
+#
+#     return result
+#
+#
+# def estimate(forQuestion: State, possibleStates: list[State]):
+#     maxim = 0
+#
+#     for dqa in permutations(forQuestion, possibleStates):
+#         if len(dqa) > maxim:
+#             maxim = len(dqa)
+#
+#     return 1 + maxim
 
 
 # MARK - F(q1, a1, ...)
 
 def bestStates(possibleStates: list[State]):
     result = []
-    minim = len(possibleStates) + 1
+    maxim = 0
 
     for q in possibleStates:
-        es = estimate(q, possibleStates)
+        es = estimate(q, possibleStates, len(possibleStates))
 
-        if es < minim:
+        if es > maxim:
             result.clear()
-            minim = es
+            maxim = es
 
-        if es == minim:
+        if es == maxim:
             result.append(q)
 
     return result
@@ -288,6 +308,11 @@ if __name__ == '__main__':
         minimax(newGame)
 
     print("Game ended!\n")
+
+
+
+
+
 
 
 
