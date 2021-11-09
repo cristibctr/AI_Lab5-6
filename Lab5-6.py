@@ -2,6 +2,7 @@ import random
 import math
 from itertools import product
 
+
 class State:
     def __init__(self, balls=[]):
         self.balls = balls
@@ -106,7 +107,7 @@ class Game:
 
     def okState(self, state: State) -> bool:
         for color in range(0, self.numberOfColors):
-            if self.numberOfSameColoredBalls > state.balls.count(color):
+            if self.numberOfSameColoredBalls < state.balls.count(color):
                 return False
 
         return True
@@ -121,7 +122,7 @@ class Game:
             newState: State = state.clone()
             newState.balls[index] = color
             if self.okState(state):
-                result.append(self.backTrackStates(newState, index + 1))
+                result += self.backTrackStates(newState, index + 1)
 
         return result
 
@@ -130,31 +131,83 @@ class Game:
 
         return self.backTrackStates(initialState, 0)
 
+# MARK -- Ck
 
-# def possibleNextStates(game: Game):
+def question(state: State, state1: State):
+    correctGuesses = 0
+
+    for index in range(0, min(len(state.balls), len(state1.balls))):
+        if state.balls[index] == state1.balls[index]:
+            correctGuesses += 1
+
+    return correctGuesses
 
 
+def eliminateImpossibleStates(possibleStates: list[State], qAndA: QAndA) -> list[State]:
+    result = []
 
-#returns number of possible outcomes when you guessed x correct balls starting from current state
-def numberOfPossibilities(game, state, correctGuesses):
-    #took me more than an hour to define this formula using many examples ---- not sure if it's correct
-    return (pow(game.numberOfColors, len(state.balls) - correctGuesses) - (len(state.balls) - correctGuesses)) *  math.comb(len(state.balls), correctGuesses) - 1
-
-#generates the number of possible outcomes for every possible number of correct guesses
-def generateAllGuesses(game, state):
-    genNr = []
-    for correctGuesses in range(0, len(state.balls)):
-        genNr.append(numberOfPossibilities(game, state, correctGuesses))
-    return genNr
-
-def generateAllStates(game):
-    possibleStates = list(product([i for i in range(1, game.numberOfColors + 1)], repeat=game.numberOfBallsInState))
     for state in possibleStates:
-        print(generateAllGuesses(game, State(state)))
+        if question(state, qAndA.state) == qAndA.answer:
+            result.append(state)
 
+    return result
+
+
+def possibleNextStates(allPossibleStates: [State], allQAndA: [QAndA]):
+    possibleStates = list(allPossibleStates)
+
+    for qAndA in allQAndA:
+        possibleStates = eliminateImpossibleStates(possibleStates, qAndA)
+
+    return possibleStates
+
+
+# MARK -- P(q, C)
+
+def permutations(forQuestion: State, possibleStates: list[State]):
+    result = []
+
+    for answer in range(0, len(forQuestion.balls) + 1):
+        resultingStates = possibleNextStates(possibleStates, [QAndA(forQuestion, answer)])
+
+        if len(resultingStates):
+            result.append(resultingStates)
+
+    return result
+
+
+# MARK - le(q, C) = es(q, C) when est(C) = len(C)
+
+def estimate(forQuestion: State, possibleStates: list[State]):
+    maxim = 0
+
+    for dqa in permutations(forQuestion, possibleStates):
+        if len(dqa) > maxim:
+            maxim = len(dqa)
+
+    return 1 + maxim
+
+
+# MARK - F(q1, a1, ...)
+
+def bestStates(possibleStates: list[State]):
+    result = []
+    minim = len(possibleStates) + 1
+
+    for q in possibleStates:
+        es = estimate(q, possibleStates)
+
+        if es < minim:
+            result.clear()
+            minim = es
+
+        if es == minim:
+            result.append(q)
+
+    return result
 
 if __name__ == '__main__':
-    newGame = Game(5, 4, 4)
+    newGame = Game(4, 4, 4)
 
     # generateAllStates(newGame)
     # exit()
@@ -188,4 +241,28 @@ if __name__ == '__main__':
         print(f"You have guessed {guessResult} balls out of {newGame.numberOfBallsInState}\n")
         print(f"You have {newGame.getAvailableTries() + 1} tries left\n")
 
+        # print(permutations())
+
     print("Game ended!\n")
+
+
+
+# returns number of possible outcomes when you guessed x correct balls starting from current state
+def numberOfPossibilities(game, state, correctGuesses):
+    # took me more than an hour to define this formula using many examples ---- not sure if it's correct
+    return (pow(game.numberOfColors, len(state.balls) - correctGuesses) - (
+                len(state.balls) - correctGuesses)) * math.comb(len(state.balls), correctGuesses) - 1
+
+
+# generates the number of possible outcomes for every possible number of correct guesses
+def generateAllGuesses(game, state):
+    genNr = []
+    for correctGuesses in range(0, len(state.balls)):
+        genNr.append(numberOfPossibilities(game, state, correctGuesses))
+    return genNr
+
+
+def generateAllStates(game):
+    possibleStates = list(product([i for i in range(1, game.numberOfColors + 1)], repeat=game.numberOfBallsInState))
+    for state in possibleStates:
+        print(generateAllGuesses(game, State(state)))
